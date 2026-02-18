@@ -1,6 +1,6 @@
 -- +goose Up
 CREATE TABLE users (
-    user_id UUID  PRIMARY KEY gen_random_uuid(),
+    user_id UUID  PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(255) NOT NULL UNIQUE,
     firt_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
