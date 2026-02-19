@@ -2,7 +2,7 @@
 CREATE TABLE users (
     user_id UUID  PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(255) NOT NULL UNIQUE,
-    firt_name VARCHAR(100) NOT NULL,
+    first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     phone VARCHAR(20),
     
@@ -12,8 +12,8 @@ CREATE TABLE users (
 
     last_login_at TIMESTAMPTZ,
 
-    create_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    update_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 
 );
 

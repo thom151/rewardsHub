@@ -1,10 +1,10 @@
 -- name: CreateUser :one
-INSERT INTO users (id, created_at, updated_at, email)
+INSERT INTO users (email, first_name, last_name, phone)
 VALUES (
-    gen_random_uuid(),
-    NOW(),
-    NOW(),
-    $1
+    $1,
+    $2,
+    $3,
+    $4
 )
 RETURNING *;
 
