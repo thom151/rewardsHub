@@ -8,6 +8,8 @@ package database
 import (
 	"context"
 	"database/sql"
+
+	"github.com/google/uuid"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -35,6 +37,50 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		arg.LastName,
 		arg.Phone,
 	)
+	var i User
+	err := row.Scan(
+		&i.UserID,
+		&i.Email,
+		&i.FirstName,
+		&i.LastName,
+		&i.Phone,
+		&i.IsAdmin,
+		&i.Status,
+		&i.LastLoginAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const deleteUser = `-- name: DeleteUser :one
+DELETE FROM users WHERE user_id = $1 RETURNING user_id, email, first_name, last_name, phone, is_admin, status, last_login_at, created_at, updated_at
+`
+
+func (q *Queries) DeleteUser(ctx context.Context, userID uuid.UUID) (User, error) {
+	row := q.db.QueryRowContext(ctx, deleteUser, userID)
+	var i User
+	err := row.Scan(
+		&i.UserID,
+		&i.Email,
+		&i.FirstName,
+		&i.LastName,
+		&i.Phone,
+		&i.IsAdmin,
+		&i.Status,
+		&i.LastLoginAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getUserByEmail = `-- name: GetUserByEmail :one
+SELECT user_id, email, first_name, last_name, phone, is_admin, status, last_login_at, created_at, updated_at FROM users WHERE email = $1
+`
+
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
 	var i User
 	err := row.Scan(
 		&i.UserID,

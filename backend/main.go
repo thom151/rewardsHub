@@ -12,7 +12,8 @@ import (
 )
 
 type apiConfig struct {
-	db *database.Queries
+	db          *database.Queries
+	tokenSecret string
 }
 
 func main() {
@@ -24,6 +25,11 @@ func main() {
 		log.Fatal("DATABASE_URL must be set")
 	}
 
+	tokenSecret := os.Getenv("SECRET")
+	if tokenSecret == "" {
+		log.Fatal("SECRET must be set")
+	}
+
 	dbConn, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		log.Fatalf("Error opening database: %s", err)
@@ -31,12 +37,16 @@ func main() {
 	dbQueries := database.New(dbConn)
 
 	apiCfg := apiConfig{
-		db: dbQueries,
+		db:          dbQueries,
+		tokenSecret: tokenSecret,
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", handlerReadiness)
 
-	mux.HandleFunc("POST /users", apiCfg.handlerCreateUser)
+	mux.HandleFunc("POST /api/refresh", apiCfg.handlerRefresh)
+
+	mux.HandleFunc("POST /api/users", apiCfg.handlerCreateUser)
+	mux.HandleFunc("POST /api/login", apiCfg.handlerLogin)
 
 	srv := &http.Server{
 		Addr:    ":" + port,

@@ -3,7 +3,7 @@ CREATE TABLE auth_identity(
     identity_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
     provider VARCHAR(50) NOT NULL,
-    provider_subject VARCHAR(255) NOT NULL,
+    provider_subject VARCHAR(255),
     provider_hash TEXT,
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

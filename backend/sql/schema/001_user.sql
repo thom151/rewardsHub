@@ -9,7 +9,6 @@ CREATE TABLE users (
     is_admin BOOLEAN NOT NULL DEFAULT FALSE,
 
     status VARCHAR(20) NOT NULL DEFAULT 'active',
-
     last_login_at TIMESTAMPTZ,
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

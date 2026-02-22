@@ -11,6 +11,34 @@ import (
 	"github.com/google/uuid"
 )
 
+type AuthIdentity struct {
+	IdentityID      uuid.UUID
+	UserID          uuid.UUID
+	Provider        string
+	ProviderSubject sql.NullString
+	ProviderHash    sql.NullString
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+}
+
+type Organization struct {
+	OrganizationID   uuid.UUID
+	Name             string
+	OrganizationType string
+	Status           string
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+}
+
+type RefreshToken struct {
+	Token     string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	UserID    uuid.UUID
+	ExpiresAt time.Time
+	RevokedAt sql.NullTime
+}
+
 type User struct {
 	UserID      uuid.UUID
 	Email       string

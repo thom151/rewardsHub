@@ -8,3 +8,12 @@ VALUES (
 )
 RETURNING *;
 
+
+
+-- name: DeleteUser :one
+DELETE FROM users WHERE user_id = $1 RETURNING *;
+
+
+
+-- name: GetUserByEmail :one
+SELECT * FROM users WHERE email = $1;
