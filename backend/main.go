@@ -48,6 +48,9 @@ func main() {
 	mux.HandleFunc("POST /api/users", apiCfg.handlerCreateUser)
 	mux.HandleFunc("POST /api/login", apiCfg.handlerLogin)
 
+	//ADMINS ONLY
+	mux.Handle("POST /api/platform/create_organization", apiCfg.authMiddleware(apiCfg.plaformAdminOnly(http.HandlerFunc(apiCfg.handlerAdminCreateOrganization))))
+	mux.Handle("POST /api/platform/create_service", apiCfg.authMiddleware(apiCfg.plaformAdminOnly(http.HandlerFunc(apiCfg.handlerAdminCreateService))))
 	srv := &http.Server{
 		Addr:    ":" + port,
 		Handler: mux,

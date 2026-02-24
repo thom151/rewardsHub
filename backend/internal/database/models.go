@@ -21,6 +21,15 @@ type AuthIdentity struct {
 	UpdatedAt       time.Time
 }
 
+type OrgMembership struct {
+	MembershipID   uuid.UUID
+	OrganizationID uuid.UUID
+	UserID         uuid.UUID
+	OrgRole        string
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+}
+
 type Organization struct {
 	OrganizationID   uuid.UUID
 	Name             string
@@ -37,6 +46,18 @@ type RefreshToken struct {
 	UserID    uuid.UUID
 	ExpiresAt time.Time
 	RevokedAt sql.NullTime
+}
+
+type Service struct {
+	ServiceID         uuid.UUID
+	Name              string
+	Code              string
+	Description       sql.NullString
+	BasePrice         string
+	BasePointsRewards int32
+	IsActive          bool
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
 }
 
 type User struct {
