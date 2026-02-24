@@ -6,3 +6,7 @@ VALUES(
     $3
 )
 RETURNING *;
+
+
+-- name: GetOrgMembershipFromUserID :one
+SELECT * FROM org_membership WHERE user_id = $1;

@@ -7,6 +7,8 @@ package database
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 const createOrganization = `-- name: CreateOrganization :one
@@ -24,6 +26,24 @@ type CreateOrganizationParams struct {
 
 func (q *Queries) CreateOrganization(ctx context.Context, arg CreateOrganizationParams) (Organization, error) {
 	row := q.db.QueryRowContext(ctx, createOrganization, arg.Name, arg.OrganizationType)
+	var i Organization
+	err := row.Scan(
+		&i.OrganizationID,
+		&i.Name,
+		&i.OrganizationType,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getOrganizationFromID = `-- name: GetOrganizationFromID :one
+SELECT organization_id, name, organization_type, status, created_at, updated_at FROM organization WHERE organization_id = $1
+`
+
+func (q *Queries) GetOrganizationFromID(ctx context.Context, organizationID uuid.UUID) (Organization, error) {
+	row := q.db.QueryRowContext(ctx, getOrganizationFromID, organizationID)
 	var i Organization
 	err := row.Scan(
 		&i.OrganizationID,

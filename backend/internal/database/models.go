@@ -39,6 +39,20 @@ type Organization struct {
 	UpdatedAt        time.Time
 }
 
+type Property struct {
+	PropertyID      uuid.UUID
+	OrganizationID  uuid.UUID
+	CreatedByUserID uuid.NullUUID
+	AddressLine1    string
+	AddressLine2    sql.NullString
+	City            string
+	StateRegion     string
+	PostalCode      string
+	ListingUrl      sql.NullString
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+}
+
 type RefreshToken struct {
 	Token     string
 	CreatedAt time.Time

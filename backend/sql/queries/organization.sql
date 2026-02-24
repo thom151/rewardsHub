@@ -4,3 +4,7 @@ VALUES (
     $1,
     $2
 ) RETURNING *;
+
+
+-- name: GetOrganizationFromID :one
+SELECT * FROM organization WHERE organization_id = $1;

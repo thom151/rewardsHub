@@ -40,3 +40,21 @@ func (q *Queries) CreateOrgMembership(ctx context.Context, arg CreateOrgMembersh
 	)
 	return i, err
 }
+
+const getOrgMembershipFromUserID = `-- name: GetOrgMembershipFromUserID :one
+SELECT membership_id, organization_id, user_id, org_role, created_at, updated_at FROM org_membership WHERE user_id = $1
+`
+
+func (q *Queries) GetOrgMembershipFromUserID(ctx context.Context, userID uuid.UUID) (OrgMembership, error) {
+	row := q.db.QueryRowContext(ctx, getOrgMembershipFromUserID, userID)
+	var i OrgMembership
+	err := row.Scan(
+		&i.MembershipID,
+		&i.OrganizationID,
+		&i.UserID,
+		&i.OrgRole,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
