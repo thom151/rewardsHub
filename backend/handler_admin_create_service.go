@@ -36,7 +36,7 @@ func (cfg *apiConfig) handlerAdminCreateService(w http.ResponseWriter, r *http.R
 		Name              string      `json:"name"`
 		Code              ServiceCode `json:"code"`
 		Description       string      `json:"description"`
-		BasePrice         string      `json:"base_price"`
+		BasePriceCents    int32       `json:"base_price_cents"`
 		BasePointsRewards int32       `json:"base_points_rewards"`
 	}
 
@@ -55,17 +55,21 @@ func (cfg *apiConfig) handlerAdminCreateService(w http.ResponseWriter, r *http.R
 	}
 
 	if serviceParams.Name == "" {
-		respondWithError(w, http.StatusBadRequest, "missing name", err)
-		return
-	}
-
-	if serviceParams.Description == "" {
-		respondWithError(w, http.StatusBadRequest, "missing description", err)
+		respondWithError(w, http.StatusBadRequest, "missing name", nil)
 		return
 	}
 
 	if !serviceParams.Code.Valid() {
-		respondWithError(w, http.StatusBadRequest, "invalid code", err)
+		respondWithError(w, http.StatusBadRequest, "invalid code", nil)
+		return
+	}
+	if serviceParams.BasePriceCents < 0 {
+		respondWithError(w, http.StatusBadRequest, "missing base_price", nil)
+		return
+	}
+
+	if serviceParams.BasePointsRewards < 0 {
+		respondWithError(w, http.StatusBadRequest, "base_points_rewards must be >= 0", nil)
 		return
 	}
 
@@ -76,7 +80,7 @@ func (cfg *apiConfig) handlerAdminCreateService(w http.ResponseWriter, r *http.R
 			String: serviceParams.Description,
 			Valid:  serviceParams.Description != "",
 		},
-		BasePrice:         serviceParams.BasePrice,
+		BasePriceCents:    serviceParams.BasePriceCents,
 		BasePointsRewards: serviceParams.BasePointsRewards,
 	})
 	if err != nil {

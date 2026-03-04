@@ -23,7 +23,7 @@ type OrgRole string
 const (
 	OrgRoleAdmin  OrgRole = "admin"
 	OrgRoleOwner  OrgRole = "owner"
-	OrgRoleStaff  OrgRole = "Staff"
+	OrgRoleStaff  OrgRole = "staff"
 	OrgRoleClient OrgRole = "client"
 )
 
@@ -35,6 +35,15 @@ type Organization struct {
 	UpdatedAt      time.Time `json:"updated_at"`
 }
 
+func (o OrgRole) Valid() bool {
+	switch o {
+	case OrgRoleAdmin, OrgRoleOwner, OrgRoleStaff, OrgRoleClient:
+		return true
+	default:
+		return false
+	}
+}
+
 func (cfg *apiConfig) handlerAdminCreateOrganization(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Name             string           `json:"name"`
@@ -42,8 +51,8 @@ func (cfg *apiConfig) handlerAdminCreateOrganization(w http.ResponseWriter, r *h
 	}
 
 	type response struct {
-		User        User
-		Organizaion Organization
+		User         User         `json:"user"`
+		Organization Organization `json:"organization"`
 	}
 
 	user, ok := r.Context().Value(userKey).(database.User)
@@ -111,32 +120,43 @@ func (cfg *apiConfig) handlerAdminCreateOrganization(w http.ResponseWriter, r *h
 
 func (cfg *apiConfig) handlerApproveOrganizationMembership(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
+		OrganizationID  uuid.UUID `json:"organization_id"`
 		UserIDToApprove uuid.UUID `json:"user_id_to_approve"`
-		OrgRole         string    `json:"org_role"`
+		OrgRole         OrgRole   `json:"org_role"`
 	}
 	user, ok := r.Context().Value(userKey).(database.User)
 	if !ok {
 		respondWithError(w, http.StatusForbidden, "forbidden", nil)
 		return
 	}
-
-	membership, err := cfg.db.GetOrgMembershipFromUserID(r.Context(), user.UserID)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "cannot get membership", err)
-		return
-	}
-
-	if membership.OrgRole != string(OrgRoleAdmin) && !user.IsAdmin {
-		respondWithError(w, http.StatusUnauthorized, "unahotrized to approve", nil)
-		return
-	}
-
 	decoder := json.NewDecoder(r.Body)
 	var orgMemberParams parameters
-	err = decoder.Decode(&orgMemberParams)
+	err := decoder.Decode(&orgMemberParams)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "couldn't decode params", err)
 		return
+	}
+
+	var organizationID uuid.UUID
+	if user.IsAdmin {
+		if orgMemberParams.OrganizationID == uuid.Nil {
+			respondWithError(w, http.StatusBadRequest, "missing organization_id", err)
+			return
+		}
+		organizationID = orgMemberParams.OrganizationID
+	} else {
+		membership, err := cfg.db.GetOrgMembershipFromUserID(r.Context(), user.UserID)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "cannot get membership", err)
+			return
+		}
+
+		if membership.OrgRole != string(OrgRoleAdmin) {
+			respondWithError(w, http.StatusUnauthorized, "unahotrized to approve", nil)
+			return
+		}
+		organizationID = membership.OrganizationID
+
 	}
 
 	if orgMemberParams.OrgRole == "" || orgMemberParams.UserIDToApprove == uuid.Nil {
@@ -150,17 +170,26 @@ func (cfg *apiConfig) handlerApproveOrganizationMembership(w http.ResponseWriter
 		return
 	}
 
+	if user.IsAdmin && orgMemberParams.OrganizationID != uuid.Nil {
+		organizationID = orgMemberParams.OrganizationID
+	}
+
+	if !orgMemberParams.OrgRole.Valid() {
+		respondWithError(w, http.StatusBadRequest, "invalid role", err)
+		return
+	}
+
 	orgMembership, err := cfg.db.CreateOrgMembership(r.Context(), database.CreateOrgMembershipParams{
-		OrganizationID: membership.OrganizationID,
+		OrganizationID: organizationID,
 		UserID:         orgMemberParams.UserIDToApprove,
-		OrgRole:        orgMemberParams.OrgRole,
+		OrgRole:        string(orgMemberParams.OrgRole),
 	})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "couldn't approve membership", err)
 		return
 	}
 
-	log.Printf("The membership of % with user_id %s, was successfully approved by org admin %s, with user_id %s",
+	log.Printf("The membership of %s with user_id %s, was successfully approved by org admin %s, with user_id %s",
 		userApproval.FirstName,
 		userApproval.UserID,
 		user.FirstName,

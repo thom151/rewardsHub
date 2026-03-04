@@ -10,3 +10,6 @@ RETURNING *;
 
 -- name: GetOrgMembershipFromUserID :one
 SELECT * FROM org_membership WHERE user_id = $1;
+
+-- name: IsUserMemberofOrg :one
+SELECT * FROM org_membership WHERE user_id = $1 AND organization_id =$2;

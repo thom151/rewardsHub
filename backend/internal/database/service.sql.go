@@ -8,24 +8,26 @@ package database
 import (
 	"context"
 	"database/sql"
+
+	"github.com/google/uuid"
 )
 
 const createService = `-- name: CreateService :one
-INSERT INTO service(name, code, description, base_price, base_points_rewards)
+INSERT INTO service(name, code, description, base_price_cents, base_points_rewards)
 VALUES(
     $1,
     $2,
     $3,
     $4,
     $5
-) RETURNING service_id, name, code, description, base_price, base_points_rewards, is_active, created_at, updated_at
+) RETURNING service_id, name, code, description, base_price_cents, base_points_rewards, is_active, created_at, updated_at
 `
 
 type CreateServiceParams struct {
 	Name              string
 	Code              string
 	Description       sql.NullString
-	BasePrice         string
+	BasePriceCents    int32
 	BasePointsRewards int32
 }
 
@@ -34,7 +36,7 @@ func (q *Queries) CreateService(ctx context.Context, arg CreateServiceParams) (S
 		arg.Name,
 		arg.Code,
 		arg.Description,
-		arg.BasePrice,
+		arg.BasePriceCents,
 		arg.BasePointsRewards,
 	)
 	var i Service
@@ -43,7 +45,28 @@ func (q *Queries) CreateService(ctx context.Context, arg CreateServiceParams) (S
 		&i.Name,
 		&i.Code,
 		&i.Description,
-		&i.BasePrice,
+		&i.BasePriceCents,
+		&i.BasePointsRewards,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getService = `-- name: GetService :one
+SELECT service_id, name, code, description, base_price_cents, base_points_rewards, is_active, created_at, updated_at FROM service WHERE service_id = $1
+`
+
+func (q *Queries) GetService(ctx context.Context, serviceID uuid.UUID) (Service, error) {
+	row := q.db.QueryRowContext(ctx, getService, serviceID)
+	var i Service
+	err := row.Scan(
+		&i.ServiceID,
+		&i.Name,
+		&i.Code,
+		&i.Description,
+		&i.BasePriceCents,
 		&i.BasePointsRewards,
 		&i.IsActive,
 		&i.CreatedAt,

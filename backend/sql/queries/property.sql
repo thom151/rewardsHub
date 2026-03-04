@@ -11,3 +11,10 @@ VALUES (
     $8
 ) RETURNING *;
 
+-- name: GetPropertyFromAdmin :one
+SELECT * FROM property WHERE property_id=$1;
+
+-- name: GetPropertiesOfUser :one
+SELECT * FROM property WHERE created_by_user_id = $1
+AND organization_id = $2 AND property_id = $3;
+

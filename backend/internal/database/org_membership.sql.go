@@ -58,3 +58,26 @@ func (q *Queries) GetOrgMembershipFromUserID(ctx context.Context, userID uuid.UU
 	)
 	return i, err
 }
+
+const isUserMemberofOrg = `-- name: IsUserMemberofOrg :one
+SELECT membership_id, organization_id, user_id, org_role, created_at, updated_at FROM org_membership WHERE user_id = $1 AND organization_id =$2
+`
+
+type IsUserMemberofOrgParams struct {
+	UserID         uuid.UUID
+	OrganizationID uuid.UUID
+}
+
+func (q *Queries) IsUserMemberofOrg(ctx context.Context, arg IsUserMemberofOrgParams) (OrgMembership, error) {
+	row := q.db.QueryRowContext(ctx, isUserMemberofOrg, arg.UserID, arg.OrganizationID)
+	var i OrgMembership
+	err := row.Scan(
+		&i.MembershipID,
+		&i.OrganizationID,
+		&i.UserID,
+		&i.OrgRole,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}

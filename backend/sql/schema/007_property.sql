@@ -3,7 +3,7 @@ CREATE TABLE property (
     property_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
     organization_id UUID NOT NULL,
-    created_by_user_id UUID,
+    created_by_user_id UUID NOT NULL,
 
     address_line1 VARCHAR(255) NOT NULL,
     address_line2 VARCHAR(255),

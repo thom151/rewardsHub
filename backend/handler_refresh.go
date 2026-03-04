@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"time"
 
@@ -17,6 +18,7 @@ func (cfg *apiConfig) handlerRefresh(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusBadRequest, "coudn't find token", err)
 		return
 	}
+	log.Printf("Refreshing acc token using %s \n", refreshToken)
 
 	user, err := cfg.db.GetUserFromRefreshToken(r.Context(), refreshToken)
 	if err != nil {

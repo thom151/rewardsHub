@@ -28,7 +28,7 @@ VALUES (
 
 type CreatePropertyParams struct {
 	OrganizationID  uuid.UUID
-	CreatedByUserID uuid.NullUUID
+	CreatedByUserID uuid.UUID
 	AddressLine1    string
 	AddressLine2    sql.NullString
 	City            string
@@ -48,6 +48,59 @@ func (q *Queries) CreateProperty(ctx context.Context, arg CreatePropertyParams) 
 		arg.PostalCode,
 		arg.ListingUrl,
 	)
+	var i Property
+	err := row.Scan(
+		&i.PropertyID,
+		&i.OrganizationID,
+		&i.CreatedByUserID,
+		&i.AddressLine1,
+		&i.AddressLine2,
+		&i.City,
+		&i.StateRegion,
+		&i.PostalCode,
+		&i.ListingUrl,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getPropertiesOfUser = `-- name: GetPropertiesOfUser :one
+SELECT property_id, organization_id, created_by_user_id, address_line1, address_line2, city, state_region, postal_code, listing_url, created_at, updated_at FROM property WHERE created_by_user_id = $1
+AND organization_id = $2 AND property_id = $3
+`
+
+type GetPropertiesOfUserParams struct {
+	CreatedByUserID uuid.UUID
+	OrganizationID  uuid.UUID
+	PropertyID      uuid.UUID
+}
+
+func (q *Queries) GetPropertiesOfUser(ctx context.Context, arg GetPropertiesOfUserParams) (Property, error) {
+	row := q.db.QueryRowContext(ctx, getPropertiesOfUser, arg.CreatedByUserID, arg.OrganizationID, arg.PropertyID)
+	var i Property
+	err := row.Scan(
+		&i.PropertyID,
+		&i.OrganizationID,
+		&i.CreatedByUserID,
+		&i.AddressLine1,
+		&i.AddressLine2,
+		&i.City,
+		&i.StateRegion,
+		&i.PostalCode,
+		&i.ListingUrl,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getPropertyFromAdmin = `-- name: GetPropertyFromAdmin :one
+SELECT property_id, organization_id, created_by_user_id, address_line1, address_line2, city, state_region, postal_code, listing_url, created_at, updated_at FROM property WHERE property_id=$1
+`
+
+func (q *Queries) GetPropertyFromAdmin(ctx context.Context, propertyID uuid.UUID) (Property, error) {
+	row := q.db.QueryRowContext(ctx, getPropertyFromAdmin, propertyID)
 	var i Property
 	err := row.Scan(
 		&i.PropertyID,

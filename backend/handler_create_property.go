@@ -4,19 +4,19 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
+	"strings"
 
-	"github.com/google/uuid"
 	"github.com/thom151/rewardsHub/internal/database"
 )
 
 func (cfg *apiConfig) handlerCreateProperty(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		AddressLine1 string `json:"address_line1"`
-		AddressLine2 string `json:"address_lin2"`
+		AddressLine2 string `json:"address_line2"`
 		City         string `json:"city"`
 		StateRegion  string `json:"state_region"`
 		PostalCode   string `json:"postal_code"`
-		ListingUrl   string `json:"listing"`
+		ListingUrl   string `json:"listing_url"`
 	}
 
 	user, ok := r.Context().Value(userKey).(database.User)
@@ -39,13 +39,18 @@ func (cfg *apiConfig) handlerCreateProperty(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	if strings.TrimSpace(p.AddressLine1) == "" ||
+		strings.TrimSpace(p.City) == "" ||
+		strings.TrimSpace(p.StateRegion) == "" ||
+		strings.TrimSpace(p.PostalCode) == "" {
+		respondWithError(w, http.StatusBadRequest, "missing required fields", nil)
+		return
+	}
+
 	property, err := cfg.db.CreateProperty(r.Context(), database.CreatePropertyParams{
-		OrganizationID: membership.OrganizationID,
-		CreatedByUserID: uuid.NullUUID{
-			UUID:  membership.UserID,
-			Valid: true,
-		},
-		AddressLine1: p.AddressLine1,
+		OrganizationID:  membership.OrganizationID,
+		CreatedByUserID: user.UserID,
+		AddressLine1:    p.AddressLine1,
 		AddressLine2: sql.NullString{
 			String: p.AddressLine2,
 			Valid:  p.AddressLine2 != "",

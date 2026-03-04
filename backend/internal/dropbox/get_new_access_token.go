@@ -1,6 +1,5 @@
 package dropbox
 
-
 import (
 	"encoding/json"
 	"net/http"

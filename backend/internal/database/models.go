@@ -21,6 +21,42 @@ type AuthIdentity struct {
 	UpdatedAt       time.Time
 }
 
+type Booking struct {
+	BookingID         uuid.UUID
+	OrganizationID    uuid.UUID
+	RequestedByUserID uuid.UUID
+	PropertyID        uuid.UUID
+	PreferredDate     time.Time
+	ScheduleStart     time.Time
+	ScheduleEnd       time.Time
+	Status            string
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+	CancelledAt       sql.NullTime
+}
+
+type BookingItem struct {
+	BookingItemID  uuid.UUID
+	BookingID      uuid.UUID
+	ServiceID      uuid.UUID
+	Quantity       int32
+	UnitPriceCents int32
+	PointsAward    int32
+	CreatedAt      time.Time
+}
+
+type Job struct {
+	JobID            uuid.UUID
+	BookingID        uuid.UUID
+	AssignedToUserID uuid.NullUUID
+	Status           string
+	StartedAt        sql.NullTime
+	CompletedAt      sql.NullTime
+	DeliveredAt      sql.NullTime
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+}
+
 type OrgMembership struct {
 	MembershipID   uuid.UUID
 	OrganizationID uuid.UUID
@@ -42,7 +78,7 @@ type Organization struct {
 type Property struct {
 	PropertyID      uuid.UUID
 	OrganizationID  uuid.UUID
-	CreatedByUserID uuid.NullUUID
+	CreatedByUserID uuid.UUID
 	AddressLine1    string
 	AddressLine2    sql.NullString
 	City            string
@@ -67,7 +103,7 @@ type Service struct {
 	Name              string
 	Code              string
 	Description       sql.NullString
-	BasePrice         string
+	BasePriceCents    int32
 	BasePointsRewards int32
 	IsActive          bool
 	CreatedAt         time.Time
