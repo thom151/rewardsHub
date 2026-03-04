@@ -76,6 +76,10 @@ func main() {
 		dropboxClientSecret:      dropboxClientSecret,
 	}
 	mux := http.NewServeMux()
+
+	const filepathRoot = "./web"
+	mux.Handle("/", http.FileServer(http.Dir(filepathRoot)))
+
 	mux.HandleFunc("GET /healthz", handlerReadiness)
 
 	mux.HandleFunc("POST /api/refresh", apiCfg.handlerRefresh)
