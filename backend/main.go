@@ -22,6 +22,9 @@ type apiConfig struct {
 	dropboxRefreshToken      string
 	dropboxClientID          string
 	dropboxClientSecret      string
+	googleClientID           string
+	googleClientSecret       string
+	googleRedirectUri        string
 }
 
 func main() {
@@ -36,6 +39,22 @@ func main() {
 	tokenSecret := os.Getenv("SECRET")
 	if tokenSecret == "" {
 		log.Fatal("SECRET must be set")
+	}
+
+	googleClientID := os.Getenv("GOOGLE_CLIENT_ID")
+	if googleClientID == "" {
+		log.Fatal("GOOGLE CLIENT ID environment variable is not set")
+	}
+	log.Print("Google client id: " + googleClientID)
+
+	googleClientSecret := os.Getenv("GOOGLE_CLIENT_SECRET")
+	if googleClientSecret == "" {
+		log.Fatal("GOOGLE CLIENT SECRET environment variable is not set")
+	}
+
+	googleRedirectUri := os.Getenv("GOOGLE_REDIRECT_URI")
+	if googleRedirectUri == "" {
+		log.Fatal("GOOGLE REDIRECT URI environment variable is not set")
 	}
 
 	dropboxRefreshToken := os.Getenv("DROPBOX_REFRESH_TOKEN")
@@ -74,6 +93,9 @@ func main() {
 		dropboxRefreshToken:      dropboxRefreshToken,
 		dropboxClientID:          dropboxClientID,
 		dropboxClientSecret:      dropboxClientSecret,
+		googleClientID:           googleClientID,
+		googleClientSecret:       googleClientSecret,
+		googleRedirectUri:        googleRedirectUri,
 	}
 	mux := http.NewServeMux()
 
@@ -86,6 +108,10 @@ func main() {
 
 	mux.HandleFunc("POST /api/users", apiCfg.handlerCreateUser)
 	mux.HandleFunc("POST /api/login", apiCfg.handlerLogin)
+
+	// OAUTH GOOGLE
+	mux.HandleFunc("GET /auth/google/start", apiCfg.handlerAuthGoogleStart)
+	mux.HandleFunc("GET /auth/google/callback", apiCfg.handlerAuthGoogleCallback)
 
 	//AUTHORIZED USERS
 	mux.Handle("POST /api/property", apiCfg.authMiddleware(http.HandlerFunc(apiCfg.handlerCreateProperty)))
