@@ -11,4 +11,5 @@ VALUES(
 -- name: GetService :one
 SELECT * FROM service WHERE service_id = $1;
 
-
+-- name: GetAllServices :many
+SELECT * FROM service;

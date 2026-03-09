@@ -57,6 +57,13 @@ type Job struct {
 	UpdatedAt        time.Time
 }
 
+type OauthState struct {
+	State     string
+	UserID    uuid.UUID
+	CreatedAt time.Time
+	ExpiresAt time.Time
+}
+
 type OrgMembership struct {
 	MembershipID   uuid.UUID
 	OrganizationID uuid.UUID
@@ -121,4 +128,18 @@ type User struct {
 	LastLoginAt sql.NullTime
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
+}
+
+type UserOauthConnection struct {
+	ConnectionID  uuid.UUID
+	UserID        uuid.UUID
+	Provider      string
+	Service       string
+	ProviderEmail sql.NullString
+	RefreshToken  string
+	AccessToken   sql.NullString
+	ExpiresAt     sql.NullTime
+	Scopes        sql.NullString
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
 }

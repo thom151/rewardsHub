@@ -25,6 +25,8 @@ type apiConfig struct {
 	googleClientID           string
 	googleClientSecret       string
 	googleRedirectUri        string
+	googleRefreshToken       string
+	googleAccessToken        string
 }
 
 func main() {
@@ -110,12 +112,15 @@ func main() {
 	mux.HandleFunc("POST /api/login", apiCfg.handlerLogin)
 
 	// OAUTH GOOGLE
-	mux.HandleFunc("GET /auth/google/start", apiCfg.handlerAuthGoogleStart)
-	mux.HandleFunc("GET /auth/google/callback", apiCfg.handlerAuthGoogleCallback)
+	mux.Handle("GET /auth/google/start", apiCfg.authMiddleware(http.HandlerFunc(apiCfg.handlerAuthGoogleStart)))
+	mux.Handle("GET /auth/google/callback", apiCfg.authMiddleware(http.HandlerFunc(apiCfg.handlerAuthGoogleCallback)))
 
 	//AUTHORIZED USERS
 	mux.Handle("POST /api/property", apiCfg.authMiddleware(http.HandlerFunc(apiCfg.handlerCreateProperty)))
 	mux.Handle("POST /api/booking", apiCfg.authMiddleware(http.HandlerFunc(apiCfg.handlerCreateBooking)))
+
+	mux.Handle("GET /api/events", apiCfg.authMiddleware(http.HandlerFunc(apiCfg.handlerListEvents)))
+	mux.Handle("GET /api/services", apiCfg.authMiddleware(http.HandlerFunc(apiCfg.handlerGetAllServices)))
 
 	//ADMINS ONLY
 	mux.Handle("POST /api/platform/organization", apiCfg.authMiddleware(apiCfg.plaformAdminOnly(http.HandlerFunc(apiCfg.handlerAdminCreateOrganization))))

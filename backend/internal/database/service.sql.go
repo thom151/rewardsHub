@@ -54,6 +54,43 @@ func (q *Queries) CreateService(ctx context.Context, arg CreateServiceParams) (S
 	return i, err
 }
 
+const getAllServices = `-- name: GetAllServices :many
+SELECT service_id, name, code, description, base_price_cents, base_points_rewards, is_active, created_at, updated_at FROM service
+`
+
+func (q *Queries) GetAllServices(ctx context.Context) ([]Service, error) {
+	rows, err := q.db.QueryContext(ctx, getAllServices)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Service
+	for rows.Next() {
+		var i Service
+		if err := rows.Scan(
+			&i.ServiceID,
+			&i.Name,
+			&i.Code,
+			&i.Description,
+			&i.BasePriceCents,
+			&i.BasePointsRewards,
+			&i.IsActive,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getService = `-- name: GetService :one
 SELECT service_id, name, code, description, base_price_cents, base_points_rewards, is_active, created_at, updated_at FROM service WHERE service_id = $1
 `
