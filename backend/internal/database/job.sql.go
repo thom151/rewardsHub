@@ -7,6 +7,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/google/uuid"
 )
@@ -16,7 +17,7 @@ INSERT INTO job (booking_id, assigned_to_user_id)
 VALUES (
     $1,
     $2
-) RETURNING job_id, booking_id, assigned_to_user_id, status, started_at, completed_at, delivered_at, created_at, updated_at
+) RETURNING job_id, booking_id, assigned_to_user_id, status, started_at, completed_at, delivered_at, created_at, updated_at, google_event_id
 `
 
 type CreateJobParams struct {
@@ -37,6 +38,37 @@ func (q *Queries) CreateJob(ctx context.Context, arg CreateJobParams) (Job, erro
 		&i.DeliveredAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.GoogleEventID,
+	)
+	return i, err
+}
+
+const insertEventID = `-- name: InsertEventID :one
+UPDATE job
+SET google_event_id = $2
+WHERE job_id = $1
+RETURNING job_id, booking_id, assigned_to_user_id, status, started_at, completed_at, delivered_at, created_at, updated_at, google_event_id
+`
+
+type InsertEventIDParams struct {
+	JobID         uuid.UUID
+	GoogleEventID sql.NullString
+}
+
+func (q *Queries) InsertEventID(ctx context.Context, arg InsertEventIDParams) (Job, error) {
+	row := q.db.QueryRowContext(ctx, insertEventID, arg.JobID, arg.GoogleEventID)
+	var i Job
+	err := row.Scan(
+		&i.JobID,
+		&i.BookingID,
+		&i.AssignedToUserID,
+		&i.Status,
+		&i.StartedAt,
+		&i.CompletedAt,
+		&i.DeliveredAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.GoogleEventID,
 	)
 	return i, err
 }

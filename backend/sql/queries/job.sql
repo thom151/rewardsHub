@@ -4,3 +4,9 @@ VALUES (
     $1,
     $2
 ) RETURNING *;
+
+-- name: InsertEventID :one
+UPDATE job
+SET google_event_id = $2
+WHERE job_id = $1
+RETURNING *;
