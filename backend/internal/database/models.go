@@ -55,6 +55,7 @@ type Job struct {
 	DeliveredAt      sql.NullTime
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
+	GoogleEventID    sql.NullString
 }
 
 type OauthState struct {
@@ -82,6 +83,17 @@ type Organization struct {
 	UpdatedAt        time.Time
 }
 
+type PointLedger struct {
+	LedgerID       uuid.UUID
+	OrganizationID uuid.UUID
+	UserID         uuid.NullUUID
+	EventType      string
+	EventID        uuid.NullUUID
+	PointsDelta    int32
+	Description    sql.NullString
+	CreatedAt      time.Time
+}
+
 type Property struct {
 	PropertyID      uuid.UUID
 	OrganizationID  uuid.UUID
@@ -96,6 +108,19 @@ type Property struct {
 	UpdatedAt       time.Time
 }
 
+type Redemption struct {
+	RedemptionID      uuid.UUID
+	OrganizationID    uuid.UUID
+	RequestedByUserID uuid.UUID
+	RewardID          uuid.UUID
+	AppliedBookingID  uuid.UUID
+	Status            string
+	PointsCost        int32
+	CreatedAt         time.Time
+	ApprovedAt        sql.NullTime
+	CancelledAt       sql.NullTime
+}
+
 type RefreshToken struct {
 	Token     string
 	CreatedAt time.Time
@@ -103,6 +128,18 @@ type RefreshToken struct {
 	UserID    uuid.UUID
 	ExpiresAt time.Time
 	RevokedAt sql.NullTime
+}
+
+type Reward struct {
+	RewardID    uuid.UUID
+	Code        string
+	Name        string
+	Description sql.NullString
+	ServiceID   uuid.UUID
+	PointsCost  int32
+	IsActive    bool
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
 type Service struct {

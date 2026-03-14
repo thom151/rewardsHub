@@ -26,6 +26,7 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 
 	type response struct {
 		User
+		IsAdmin      bool   `json:"is_admin"`
 		Token        string `json:"token"`
 		RefreshToken string `json:"refresh_token"`
 	}
@@ -89,6 +90,7 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 			UpdatedAt: user.UpdatedAt,
 			Email:     user.Email,
 		},
+		IsAdmin:      user.IsAdmin,
 		Token:        accessToken,
 		RefreshToken: refreshToken,
 	})

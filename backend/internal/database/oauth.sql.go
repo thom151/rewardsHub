@@ -71,3 +71,84 @@ func (q *Queries) CreateOauthConnection(ctx context.Context, arg CreateOauthConn
 	)
 	return i, err
 }
+
+const getOauthConnectionFromUser = `-- name: GetOauthConnectionFromUser :one
+SELECT connection_id, user_id, provider, service, provider_email, refresh_token, access_token, expires_at, scopes, created_at, updated_at FROM user_oauth_connections WHERE 
+user_id = $1 AND provider = $2 AND service = $3
+`
+
+type GetOauthConnectionFromUserParams struct {
+	UserID   uuid.UUID
+	Provider string
+	Service  string
+}
+
+func (q *Queries) GetOauthConnectionFromUser(ctx context.Context, arg GetOauthConnectionFromUserParams) (UserOauthConnection, error) {
+	row := q.db.QueryRowContext(ctx, getOauthConnectionFromUser, arg.UserID, arg.Provider, arg.Service)
+	var i UserOauthConnection
+	err := row.Scan(
+		&i.ConnectionID,
+		&i.UserID,
+		&i.Provider,
+		&i.Service,
+		&i.ProviderEmail,
+		&i.RefreshToken,
+		&i.AccessToken,
+		&i.ExpiresAt,
+		&i.Scopes,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const updateOauthConnectionTokens = `-- name: UpdateOauthConnectionTokens :one
+UPDATE user_oauth_connections
+SET
+    refresh_token = $4,
+    access_token = $5,
+    expires_at = $6,
+    scopes = $7,
+    updated_at = NOW()
+WHERE user_id = $1
+  AND provider = $2
+  AND service = $3
+RETURNING connection_id, user_id, provider, service, provider_email, refresh_token, access_token, expires_at, scopes, created_at, updated_at
+`
+
+type UpdateOauthConnectionTokensParams struct {
+	UserID       uuid.UUID
+	Provider     string
+	Service      string
+	RefreshToken string
+	AccessToken  sql.NullString
+	ExpiresAt    sql.NullTime
+	Scopes       sql.NullString
+}
+
+func (q *Queries) UpdateOauthConnectionTokens(ctx context.Context, arg UpdateOauthConnectionTokensParams) (UserOauthConnection, error) {
+	row := q.db.QueryRowContext(ctx, updateOauthConnectionTokens,
+		arg.UserID,
+		arg.Provider,
+		arg.Service,
+		arg.RefreshToken,
+		arg.AccessToken,
+		arg.ExpiresAt,
+		arg.Scopes,
+	)
+	var i UserOauthConnection
+	err := row.Scan(
+		&i.ConnectionID,
+		&i.UserID,
+		&i.Provider,
+		&i.Service,
+		&i.ProviderEmail,
+		&i.RefreshToken,
+		&i.AccessToken,
+		&i.ExpiresAt,
+		&i.Scopes,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}

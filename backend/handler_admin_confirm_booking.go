@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/thom151/rewardsHub/internal/database"
 	"github.com/thom151/rewardsHub/internal/dropbox"
+	"github.com/thom151/rewardsHub/internal/gCalendar"
 )
 
 func (cfg *apiConfig) handlerAdminConfirmBooking(w http.ResponseWriter, r *http.Request) {
@@ -113,8 +115,46 @@ func (cfg *apiConfig) handlerAdminConfirmBooking(w http.ResponseWriter, r *http.
 		return
 	}
 
+	event := gCalendar.CreateEventParams{
+		CalendarID: "primary",
+		Summary:    fmt.Sprintf("Property Shoot - %s", property.AddressLine1),
+		Description: fmt.Sprintf(
+			"Booking ID: %s\nRequested By: %s\nOrganization: %s",
+			booking.BookingID,
+			userAgent.Email,
+			organization.Name,
+		),
+		Location: property.AddressLine1,
+		Start:    booking.ScheduleStart,
+		End:      booking.ScheduleEnd,
+		TimeZone: "Australia/Melbourne"}
+
+	accessToken, err := cfg.getValidGoogleCalendarAccessToken(r.Context(), user.UserID)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "couldn't get access token", err)
+		return
+	}
+
+	newEvent, err := gCalendar.CreateEvent(r.Context(), accessToken, event)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "couldn't create event", err)
+		return
+	}
+
+	jobWithEvent, err := cfg.db.InsertEventID(r.Context(), database.InsertEventIDParams{
+		JobID: job.JobID,
+		GoogleEventID: sql.NullString{
+			String: newEvent.ID,
+			Valid:  newEvent.ID != "",
+		},
+	})
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "couldn't create event in db", err)
+		return
+	}
+
 	log.Printf("job was successfully created by %s with id with %s.  ", user.FirstName, user.UserID)
-	respondWithJSON(w, http.StatusOK, job)
+	respondWithJSON(w, http.StatusOK, jobWithEvent)
 }
 
 const BaseDropboxFolder = "leadway-rewards"
