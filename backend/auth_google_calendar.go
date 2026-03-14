@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -13,23 +14,50 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/thom151/rewardsHub/internal/database"
+	"github.com/thom151/rewardsHub/internal/gCalendar"
 )
 
-func (cfg *apiConfig) handlerListEvents(w http.ResponseWriter, r *http.Request) {
-	type params struct {
-		Start      time.Time `json:"start"`
-		End        time.Time `json:"end"`
-		CalendarID string    `json:"calendar_id"`
-	}
-
-	decoder := json.NewDecoder(r.Body)
-	var eParams params
-	err := decoder.Decode(&eParams)
+func (cfg *apiConfig) getValidGoogleCalendarAccessToken(ctx context.Context, userID uuid.UUID) (string, error) {
+	oauth, err := cfg.db.GetOauthConnectionFromUser(ctx, database.GetOauthConnectionFromUserParams{
+		UserID:   userID,
+		Provider: "google",
+		Service:  "calendar",
+	})
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "couldn't decode params", err)
-		return
+		return "", err
 	}
 
+	var accessToken string
+
+	if oauth.ExpiresAt.Valid && oauth.AccessToken.Valid && time.Now().Before(oauth.ExpiresAt.Time) {
+		accessToken = oauth.AccessToken.String
+	} else {
+		accessToken, expiresIn, err := gCalendar.RefreshGoogleAccessToken(ctx, cfg.googleClientID, cfg.googleClientSecret, oauth.RefreshToken)
+		if err != nil {
+			return "", err
+		}
+
+		expiresAt := time.Now().Add(time.Duration(expiresIn) * time.Second)
+
+		_, err = cfg.db.UpdateOauthConnectionTokens(ctx, database.UpdateOauthConnectionTokensParams{
+			UserID:   userID,
+			Provider: "google",
+			Service:  "calendar",
+			AccessToken: sql.NullString{
+				String: accessToken,
+				Valid:  accessToken != "",
+			},
+			ExpiresAt: sql.NullTime{
+				Time:  expiresAt,
+				Valid: true,
+			},
+		})
+		if err != nil {
+			return "", err
+		}
+	}
+
+	return accessToken, nil
 }
 
 func (cfg *apiConfig) handlerAuthGoogleStart(w http.ResponseWriter, r *http.Request) {

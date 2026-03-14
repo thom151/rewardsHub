@@ -112,8 +112,8 @@ func main() {
 	mux.HandleFunc("POST /api/login", apiCfg.handlerLogin)
 
 	// OAUTH GOOGLE
-	mux.Handle("GET /auth/google/start", apiCfg.authMiddleware(http.HandlerFunc(apiCfg.handlerAuthGoogleStart)))
-	mux.Handle("GET /auth/google/callback", apiCfg.authMiddleware(http.HandlerFunc(apiCfg.handlerAuthGoogleCallback)))
+	mux.Handle("GET /api/auth/google/start", apiCfg.authMiddleware(http.HandlerFunc(apiCfg.handlerAuthGoogleStart)))
+	mux.HandleFunc("GET /auth/google/callback", apiCfg.handlerAuthGoogleCallback)
 
 	//AUTHORIZED USERS
 	mux.Handle("POST /api/property", apiCfg.authMiddleware(http.HandlerFunc(apiCfg.handlerCreateProperty)))
