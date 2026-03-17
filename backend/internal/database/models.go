@@ -46,16 +46,33 @@ type BookingItem struct {
 }
 
 type Job struct {
-	JobID            uuid.UUID
-	BookingID        uuid.UUID
-	AssignedToUserID uuid.NullUUID
-	Status           string
-	StartedAt        sql.NullTime
-	CompletedAt      sql.NullTime
-	DeliveredAt      sql.NullTime
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
-	GoogleEventID    sql.NullString
+	JobID             uuid.UUID
+	BookingID         uuid.UUID
+	AssignedToUserID  uuid.NullUUID
+	Status            string
+	StartedAt         sql.NullTime
+	CompletedAt       sql.NullTime
+	DeliveredAt       sql.NullTime
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+	GoogleEventID     sql.NullString
+	DropboxFolderPath sql.NullString
+}
+
+type JobAsset struct {
+	AssetID         uuid.UUID
+	JobID           uuid.UUID
+	CreatedByUserID uuid.NullUUID
+	AssetType       string
+	DropboxPath     string
+	DropboxFileID   sql.NullString
+	FileName        string
+	MimeType        string
+	SizeBytes       int64
+	ChecksumSha256  sql.NullString
+	IsPrimary       bool
+	SortOrder       int32
+	CreatedAt       time.Time
 }
 
 type OauthState struct {
