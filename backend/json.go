@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"html/template"
 	"log"
 	"net/http"
 )
@@ -31,4 +32,19 @@ func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	}
 	w.WriteHeader(code)
 	w.Write(dat)
+}
+
+func RenderTemplate(w http.ResponseWriter, tmpl string, data interface{}) {
+	tmpls := []string{"./web/layout.html", "./web/" + tmpl + ".html"}
+	t, err := template.ParseFiles(tmpls...)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "error parsing templates", err)
+		return
+	}
+
+	err = t.ExecuteTemplate(w, "layout", data)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "error executing templates", err)
+		return
+	}
 }
