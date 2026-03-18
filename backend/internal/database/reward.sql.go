@@ -74,3 +74,24 @@ func (q *Queries) GetRewardFromID(ctx context.Context, rewardID uuid.UUID) (Rewa
 	)
 	return i, err
 }
+
+const getRewardFromServiceID = `-- name: GetRewardFromServiceID :one
+SELECT reward_id, code, name, description, service_id, points_cost, is_active, created_at, updated_at FROM reward WHERE service_id = $1
+`
+
+func (q *Queries) GetRewardFromServiceID(ctx context.Context, serviceID uuid.UUID) (Reward, error) {
+	row := q.db.QueryRowContext(ctx, getRewardFromServiceID, serviceID)
+	var i Reward
+	err := row.Scan(
+		&i.RewardID,
+		&i.Code,
+		&i.Name,
+		&i.Description,
+		&i.ServiceID,
+		&i.PointsCost,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}

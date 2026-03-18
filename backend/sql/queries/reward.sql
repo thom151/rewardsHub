@@ -10,3 +10,6 @@ VALUES(
 
 -- name: GetRewardFromID :one
 SELECT * FROM reward WHERE reward_id = $1;
+
+-- name: GetRewardFromServiceID :one
+SELECT * FROM reward WHERE service_id = $1;

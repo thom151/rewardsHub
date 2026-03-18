@@ -51,16 +51,26 @@ func (cfg *apiConfig) handlerSyncJobAssets(w http.ResponseWriter, r *http.Reques
 		respondWithError(w, http.StatusInternalServerError, "couldn't list folder", err)
 		return
 	}
+
+	tx, err := cfg.conn.BeginTx(r.Context(), nil)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "couldn't begin transaction", err)
+		return
+	}
+	defer tx.Rollback()
+
+	qtx := cfg.db.WithTx(tx)
+
 	sortOrder := 0
+	syncedCount := 0
 	for _, entry := range entries {
 		if entry.Tag == "file" {
-			sortOrder += 1
 			assetType, mimeType, err := getAssetType(entry.Name)
 			if err != nil {
 				continue
 			}
-
-			jobAsset, err := cfg.db.CreateJobAsset(r.Context(), database.CreateJobAssetParams{
+			sortOrder += 1
+			jobAsset, err := qtx.CreateJobAsset(r.Context(), database.CreateJobAssetParams{
 				JobID: job.JobID,
 				CreatedByUserID: uuid.NullUUID{
 					UUID:  user.UserID,
@@ -78,21 +88,83 @@ func (cfg *apiConfig) handlerSyncJobAssets(w http.ResponseWriter, r *http.Reques
 				IsPrimary: false,
 				ChecksumSha256: sql.NullString{
 					String: "",
-					Valid:  true,
+					Valid:  false,
 				},
 				SortOrder: int32(sortOrder),
 			})
 
 			if err != nil {
-				log.Printf("couldn't create job asset for %s", entry.PathDisplay)
+				log.Printf("couldn't create job asset for %s: %v", entry.PathDisplay, err)
 				continue
 			}
+
+			syncedCount++
 			log.Printf("created job asset for %s with asset_id %s", entry.PathDisplay, jobAsset.AssetID)
 		}
 	}
 
-	respondWithJSON(w, http.StatusOK, nil)
+	if syncedCount == 0 {
+		respondWithError(w, http.StatusBadRequest, "no valid assets were synced", nil)
+		return
+	}
 
+	jobCompleted, err := qtx.CompleteJob(r.Context(), job.JobID)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "couldnt set job completed", err)
+		return
+	}
+
+	booking, err := cfg.db.GetBooking(r.Context(), job.BookingID)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "coulnd't get booking", err)
+		return
+	}
+	bookingItems, err := cfg.db.GetBookingItems(r.Context(), booking.BookingID)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "couldn't get booking item", err)
+		return
+	}
+
+	points := 0
+	for _, item := range bookingItems {
+		service, err := cfg.db.GetService(r.Context(), item.ServiceID)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "couldn't get service", err)
+			return
+		}
+
+		points += int(service.BasePointsRewards)
+	}
+
+	pointLedger, err := qtx.CreatePointLedger(r.Context(), database.CreatePointLedgerParams{
+		OrganizationID: booking.OrganizationID,
+		UserID: uuid.NullUUID{
+			UUID:  booking.RequestedByUserID,
+			Valid: true,
+		},
+		EventType: "job_completed",
+		EventID: uuid.NullUUID{
+			UUID:  job.JobID,
+			Valid: true,
+		},
+		PointsDelta: int32(points),
+	})
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "couldn't create point ledger", err)
+		return
+	}
+
+	type resp struct {
+		Points      database.PointLedger `json:"points"`
+		Job         database.Job         `json:"job"`
+		SyncedCount int                  `json:"synced_count"`
+	}
+
+	respondWithJSON(w, http.StatusOK, resp{
+		Points:      pointLedger,
+		Job:         jobCompleted,
+		SyncedCount: syncedCount,
+	})
 }
 
 func getAssetType(fileName string) (assetType AssetType, mimeType string, err error) {
@@ -101,7 +173,6 @@ func getAssetType(fileName string) (assetType AssetType, mimeType string, err er
 	switch ext {
 	case ".jpg", ".jpeg":
 		return AssetPhoto, "image/jpeg", nil
-
 	case ".png":
 		return AssetPhoto, "image/png", nil
 	case ".webp":

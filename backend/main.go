@@ -20,6 +20,7 @@ import (
 
 type apiConfig struct {
 	db                       *database.Queries
+	conn                     *sql.DB
 	tokenSecret              string
 	dropboxAccToken          string
 	dropboxAccTokenExpiresAt time.Time
@@ -116,6 +117,7 @@ func main() {
 	client := s3.NewFromConfig(awsCfg)
 
 	apiCfg := apiConfig{
+		conn:                     dbConn,
 		db:                       dbQueries,
 		tokenSecret:              tokenSecret,
 		dropboxAccToken:          dropboxAccToken.AccessToken,
@@ -160,6 +162,7 @@ func main() {
 	mux.Handle("POST /api/platform/bookings/{booking_id}/confirm", apiCfg.authMiddleware(apiCfg.plaformAdminOnly(http.HandlerFunc(apiCfg.handlerAdminConfirmBooking))))
 	mux.Handle("POST /api/platform/video_meta", apiCfg.authMiddleware(apiCfg.plaformAdminOnly(http.HandlerFunc(apiCfg.handlerCreateVideoMeta))))
 	mux.Handle("POST /api/platform/jobs/{job_id}/sync-assets", apiCfg.authMiddleware(apiCfg.plaformAdminOnly(http.HandlerFunc(apiCfg.handlerSyncJobAssets))))
+	mux.Handle("POST /api/platform/rewards/{service_id}", apiCfg.authMiddleware(apiCfg.plaformAdminOnly(http.HandlerFunc(apiCfg.handlerAdminCreateReward))))
 
 	//ADMIN OR ORG ADMIN
 	mux.Handle("POST /api/org/approve_membership", apiCfg.authMiddleware(http.HandlerFunc(apiCfg.handlerApproveOrganizationMembership)))
