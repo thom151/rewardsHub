@@ -108,6 +108,10 @@ func (cfg *apiConfig) handlerAdminConfirmBooking(w http.ResponseWriter, r *http.
 			UUID:  user.UserID,
 			Valid: true,
 		},
+		DropboxFolderPath: sql.NullString{
+			String: fmt.Sprintf("/leadway-rewards/%s/%s/%s", organization.Name, userAgent.Email, property.AddressLine1),
+			Valid:  true,
+		},
 	})
 
 	if err != nil {

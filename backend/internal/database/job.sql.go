@@ -13,20 +13,22 @@ import (
 )
 
 const createJob = `-- name: CreateJob :one
-INSERT INTO job (booking_id, assigned_to_user_id)
+INSERT INTO job (booking_id, assigned_to_user_id, dropbox_folder_path)
 VALUES (
     $1,
-    $2
-) RETURNING job_id, booking_id, assigned_to_user_id, status, started_at, completed_at, delivered_at, created_at, updated_at, google_event_id
+    $2,
+    $3
+) RETURNING job_id, booking_id, assigned_to_user_id, status, started_at, completed_at, delivered_at, created_at, updated_at, google_event_id, dropbox_folder_path
 `
 
 type CreateJobParams struct {
-	BookingID        uuid.UUID
-	AssignedToUserID uuid.NullUUID
+	BookingID         uuid.UUID
+	AssignedToUserID  uuid.NullUUID
+	DropboxFolderPath sql.NullString
 }
 
 func (q *Queries) CreateJob(ctx context.Context, arg CreateJobParams) (Job, error) {
-	row := q.db.QueryRowContext(ctx, createJob, arg.BookingID, arg.AssignedToUserID)
+	row := q.db.QueryRowContext(ctx, createJob, arg.BookingID, arg.AssignedToUserID, arg.DropboxFolderPath)
 	var i Job
 	err := row.Scan(
 		&i.JobID,
@@ -39,6 +41,30 @@ func (q *Queries) CreateJob(ctx context.Context, arg CreateJobParams) (Job, erro
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.GoogleEventID,
+		&i.DropboxFolderPath,
+	)
+	return i, err
+}
+
+const getJob = `-- name: GetJob :one
+SELECT job_id, booking_id, assigned_to_user_id, status, started_at, completed_at, delivered_at, created_at, updated_at, google_event_id, dropbox_folder_path FROM job WHERE job_id = $1
+`
+
+func (q *Queries) GetJob(ctx context.Context, jobID uuid.UUID) (Job, error) {
+	row := q.db.QueryRowContext(ctx, getJob, jobID)
+	var i Job
+	err := row.Scan(
+		&i.JobID,
+		&i.BookingID,
+		&i.AssignedToUserID,
+		&i.Status,
+		&i.StartedAt,
+		&i.CompletedAt,
+		&i.DeliveredAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.GoogleEventID,
+		&i.DropboxFolderPath,
 	)
 	return i, err
 }
@@ -47,7 +73,7 @@ const insertEventID = `-- name: InsertEventID :one
 UPDATE job
 SET google_event_id = $2
 WHERE job_id = $1
-RETURNING job_id, booking_id, assigned_to_user_id, status, started_at, completed_at, delivered_at, created_at, updated_at, google_event_id
+RETURNING job_id, booking_id, assigned_to_user_id, status, started_at, completed_at, delivered_at, created_at, updated_at, google_event_id, dropbox_folder_path
 `
 
 type InsertEventIDParams struct {
@@ -69,6 +95,7 @@ func (q *Queries) InsertEventID(ctx context.Context, arg InsertEventIDParams) (J
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.GoogleEventID,
+		&i.DropboxFolderPath,
 	)
 	return i, err
 }

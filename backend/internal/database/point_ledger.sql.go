@@ -12,6 +12,35 @@ import (
 	"github.com/google/uuid"
 )
 
+const completeJob = `-- name: CompleteJob :one
+UPDATE job
+SET
+status = 'completed',
+completed_at = NOW(),
+updated_at = NOW()
+WHERE job_id = $1
+RETURNING job_id, booking_id, assigned_to_user_id, status, started_at, completed_at, delivered_at, created_at, updated_at, google_event_id, dropbox_folder_path
+`
+
+func (q *Queries) CompleteJob(ctx context.Context, jobID uuid.UUID) (Job, error) {
+	row := q.db.QueryRowContext(ctx, completeJob, jobID)
+	var i Job
+	err := row.Scan(
+		&i.JobID,
+		&i.BookingID,
+		&i.AssignedToUserID,
+		&i.Status,
+		&i.StartedAt,
+		&i.CompletedAt,
+		&i.DeliveredAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.GoogleEventID,
+		&i.DropboxFolderPath,
+	)
+	return i, err
+}
+
 const createPointLedger = `-- name: CreatePointLedger :one
 INSERT INTO point_ledger (organization_id, user_id, event_type, event_id, points_delta, description)
 VALUES (
@@ -54,4 +83,17 @@ func (q *Queries) CreatePointLedger(ctx context.Context, arg CreatePointLedgerPa
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const getOrganizationPointsBalance = `-- name: GetOrganizationPointsBalance :one
+SELECT COALESCE(SUM(points_delta), 0)::BIGINT AS points_balance
+FROM point_ledger
+WHERE organization_id = $1
+`
+
+func (q *Queries) GetOrganizationPointsBalance(ctx context.Context, organizationID uuid.UUID) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getOrganizationPointsBalance, organizationID)
+	var points_balance int64
+	err := row.Scan(&points_balance)
+	return points_balance, err
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -12,10 +13,14 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/thom151/rewardsHub/internal/database"
 	"github.com/thom151/rewardsHub/internal/dropbox"
+
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 type apiConfig struct {
 	db                       *database.Queries
+	conn                     *sql.DB
 	tokenSecret              string
 	dropboxAccToken          string
 	dropboxAccTokenExpiresAt time.Time
@@ -27,6 +32,10 @@ type apiConfig struct {
 	googleRedirectUri        string
 	googleRefreshToken       string
 	googleAccessToken        string
+	s3Client                 *s3.Client
+	s3Bucket                 string
+	s3Region                 string
+	s3CfDistribution         string
 }
 
 func main() {
@@ -86,8 +95,29 @@ func main() {
 		log.Fatalf("Error opening database: %s", err)
 	}
 	dbQueries := database.New(dbConn)
+	s3Bucket := os.Getenv("S3_BUCKET")
+	if s3Bucket == "" {
+		log.Fatal("S3_BUCKET environment variable is not set")
+	}
+
+	s3Region := os.Getenv("S3_REGION")
+	if s3Region == "" {
+		log.Fatal("S3_REGION environment variable is not set")
+	}
+
+	s3CfDistribution := os.Getenv("S3_CF_DISTRO")
+	if s3CfDistribution == "" {
+		log.Fatal("S3_CF_DISTRO environment variable is not set")
+	}
+
+	awsCfg, err := config.LoadDefaultConfig(context.Background(), config.WithRegion(s3Region))
+	if err != nil {
+		log.Fatal(err)
+	}
+	client := s3.NewFromConfig(awsCfg)
 
 	apiCfg := apiConfig{
+		conn:                     dbConn,
 		db:                       dbQueries,
 		tokenSecret:              tokenSecret,
 		dropboxAccToken:          dropboxAccToken.AccessToken,
@@ -98,6 +128,10 @@ func main() {
 		googleClientID:           googleClientID,
 		googleClientSecret:       googleClientSecret,
 		googleRedirectUri:        googleRedirectUri,
+		s3Client:                 client,
+		s3Region:                 s3Region,
+		s3Bucket:                 s3Bucket,
+		s3CfDistribution:         s3CfDistribution,
 	}
 	mux := http.NewServeMux()
 
@@ -126,6 +160,9 @@ func main() {
 	mux.Handle("POST /api/platform/organization", apiCfg.authMiddleware(apiCfg.plaformAdminOnly(http.HandlerFunc(apiCfg.handlerAdminCreateOrganization))))
 	mux.Handle("POST /api/platform/service", apiCfg.authMiddleware(apiCfg.plaformAdminOnly(http.HandlerFunc(apiCfg.handlerAdminCreateService))))
 	mux.Handle("POST /api/platform/bookings/{booking_id}/confirm", apiCfg.authMiddleware(apiCfg.plaformAdminOnly(http.HandlerFunc(apiCfg.handlerAdminConfirmBooking))))
+	mux.Handle("POST /api/platform/video_meta", apiCfg.authMiddleware(apiCfg.plaformAdminOnly(http.HandlerFunc(apiCfg.handlerCreateVideoMeta))))
+	mux.Handle("POST /api/platform/jobs/{job_id}/sync-assets", apiCfg.authMiddleware(apiCfg.plaformAdminOnly(http.HandlerFunc(apiCfg.handlerSyncJobAssets))))
+	mux.Handle("POST /api/platform/rewards/{service_id}", apiCfg.authMiddleware(apiCfg.plaformAdminOnly(http.HandlerFunc(apiCfg.handlerAdminCreateReward))))
 
 	//ADMIN OR ORG ADMIN
 	mux.Handle("POST /api/org/approve_membership", apiCfg.authMiddleware(http.HandlerFunc(apiCfg.handlerApproveOrganizationMembership)))
